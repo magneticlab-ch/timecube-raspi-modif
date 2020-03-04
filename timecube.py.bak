@@ -1,0 +1,175 @@
+# coding: utf8
+# --------------------------------------------
+# Description : Lecteur de carte Mifare avec un fichier d'actions
+# Auteur : Magneticlab SARL | sp4tz/g0rg/Alex
+# Date : 14.04.2016 (Modifié le 13/11/2019)
+# Version : 1.3
+# --------------------------------------------
+
+import MFRC522
+import signal
+import time
+import requests, urllib
+from urllib.error import URLError
+import json
+import csv
+import sys
+import RPi.GPIO as GPIO
+from datetime import datetime
+from sys import exit
+from time import sleep
+from subprocess import call
+import os
+
+# NFC
+continue_reading = True
+
+def end_read(signal, frame):
+  global continue_reading
+  continue_reading = False
+  print("Lecture terminée")
+  GPIO.cleanup()
+
+#Vérification du réseau
+def check_network():
+    try:
+        response = urllib.request.urlopen('http://timelab.mlab.ch/nfc/', timeout=1)
+        return True
+    except urllib.error.URLError as err:
+        #print err
+        return False
+    return False
+
+
+# Fonction ecrirelog --------------------------
+def ecrireLog(texte):
+        log = open("timecube.log", "a")
+        log.write(str(texte)+"\n")
+        print(texte)
+        log.close()
+
+# Fonction populate_sync --------------------------
+def populate_sync(sync):
+        sy = open("timecube_sync.json", "a")
+        sy.write(sync)
+        print(sync)
+        sy.close()
+
+
+
+#Action de pointage ----------------------------
+def sync():
+        json_file = "timecube_sync.json"
+        if os.stat(json_file).st_size > 0:
+                if check_network() == True:
+                        json_data = open(json_file).read()
+                        sync = {}
+                        sync['data'] = '['+json_data+']'
+                        sync['process'] = 'sync'
+                        sync['type'] = 'NFC'
+                        send = {'sync': sync}
+                        r = requests.post("http://timelab.mlab.ch/nfc/rpc.php", data=sync)
+                        print(r.content)
+                        data = json.loads(r.text)
+                        if data['status'] == 'proceed':
+                                open(json_file, 'w').close()
+                                ecrireLog( time.strftime("%d.%m.%Y | %H:%M:%S") + " | Fichier synchronisé avec succès." )
+                        time.sleep(3)
+
+
+# Récupération des adresse MAC eth0 et wlan0        
+def getMAC(interface):
+  try:
+    str = open('/sys/class/net/' + interface + '/address').read()
+  except:
+    str = "00:00:00:00:00:00"
+  return str[0:17]
+
+# Fonction actionhttp --------------------------
+def actionhttp( user_id, user ):
+        mac = getMAC('eth0')+':'+ getMAC('wlan0')
+        if check_network() == True:
+            post_data = {"process":"punch", "ID":user_id,"TIMEID":mac,"type":"NFC"}
+            httpget = requests.post("http://timelab.mlab.ch/nfc/rpc.php", data=post_data)
+            print(httpget.text)
+            try:
+                data = json.loads(httpget.text)
+            except:
+                data = {}
+                data['status'] = 'error'
+                data['message'] = httpget.text
+                print("Erreur: " + httpget.text)
+                pass
+            if data['status'] == "success":
+                ecrireLog(time.strftime(("%d.%m.%Y | %H:%M:%S") + " | " + user + ' ' + data['message']).encode('utf8'))
+                ecrireLog( "Pointage TIMECUBE effectué avec succès")
+                return True
+            else:
+                ecrireLog(time.strftime(("%d.%m.%Y | %H:%M:%S") + " | " + user + ' ' + data['message']).encode('utf8'))
+                ecrireLog( "Pointage TIMECUBE échoué")
+        else:
+            populate_sync('{"ID": "' + user_id + '", "datetime": "' + time.strftime("%Y-%m-%d %H:%M:%S") + '","TIMEID": "'+mac+'"},')
+            ecrireLog("Pas de connexion Internet! Pointage sauvegardé")
+            time.sleep(2)
+            return True
+
+# Conversion de l'UID du badge en hex -----------
+def list2HexStr(inData):
+    i = 0
+    outStr = ""
+    while i<len(inData):
+      outStr = outStr+'{:02X}'.format(inData[i])
+      i = i+1
+    return outStr
+
+# Vérification de l'UID du badge ----------------
+def checkUID(uid):
+    # Ouverture du fichier de la liste des badges        
+    ecrireLog(time.strftime("%d.%m.%Y | %H:%M:%S") + " | Chargement du fichier des badges...")
+    fichier = open( '/home/pi/Desktop/timecube-raspi-modif/timelab.magneticlab.ch/nfc/timecube.cfg', 'rt' )
+    reader = csv.reader(fichier,delimiter=';')
+    for row in reader:
+        if row[0] == uid:
+            ecrireLog( "UID " + uid + " reconnu, connexion TIMECUBE")
+            if (actionhttp(row[1], row[2]) ):
+                    return True
+            else :
+                    return True
+    return False
+
+signal.signal(signal.SIGINT, end_read)
+MIFAREReader = MFRC522.MFRC522()
+
+
+# Lecture du EXPLORENFC -------------------------
+def runReader():
+        ecrireLog(time.strftime("%d.%m.%Y | %H:%M:%S") + " | Attente d'un badge TIMECUBE.")
+        while continue_reading:
+            (status,TagType) = MIFAREReader.MFRC522_Request(MIFAREReader.PICC_REQIDL)
+            sync()
+            if status == MIFAREReader.MI_OK:
+                ecrireLog( "Carte détéctée")
+                (status,uid) = MIFAREReader.MFRC522_Anticoll()
+                badgeID = list2HexStr(uid)
+                ecrireLog( "Vérification UID "+ str( badgeID ) )
+                if checkUID(badgeID):
+                    time.sleep(1)
+                else:
+                    ecrireLog( "UID "+ str( badgeID )+ " inconnu!!!" )
+                time.sleep(2)
+
+
+# Début du script TIMECUBE
+try:
+    ecrireLog( time.strftime( "%d.%m.%Y | %H:%M:%S" ) + " | Initialisation TIMECUBE" )
+    runReader()
+except (SystemExit, KeyboardInterrupt):
+
+    raise
+except OSError as err:
+                print("OS error: {0}".format(err))
+except:
+                ecrireLog(time.strftime("%d.%m.%Y | %H:%M:%S") + " | Arret impromptu du script")
+                print("Unexpected error:", sys.exc_info()[0])
+                call(['sh timecube.sh restart'], shell=True)
+                raise
