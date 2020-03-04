@@ -1,0 +1,15 @@
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\bin\Debug\Timecube GUI.exe.config
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\bin\Debug\Timecube GUI.exe
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\bin\Debug\Timecube GUI.pdb
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube_GUI.Properties.Resources.resources
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube GUI.csproj.GenerateResource.cache
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube GUI.csproj.CoreCompileInputs.cache
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube GUI.exe
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube GUI.pdb
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube_GUI.Main.resources
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\bin\Debug\Newtonsoft.Json.dll
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\bin\Debug\Newtonsoft.Json.xml
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube GUI.csproj.CopyComplete
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube_GUI.Messagebox.resources
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube GUI.csprojAssemblyReference.cache
+C:\Users\alex\source\repos\Timecube GUI\Timecube GUI\obj\Debug\Timecube_GUI.Userinfos.resources
